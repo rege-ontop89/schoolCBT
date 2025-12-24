@@ -4,6 +4,8 @@
  */
 
 // STATE MANAGEMENT
+import { loadExamFromURL } from "./exam-loader.js";
+
 const state = {
     student: {
         name: '',
@@ -711,6 +713,31 @@ function submitExam(isAuto, submissionType = 'manual') {
     DOM.screens.exam.classList.remove('active');
     DOM.screens.result.classList.add('active');
 }
+
+// --- AUTO EXAM LOAD VIA URL (Fix 1) ---
+document.addEventListener("DOMContentLoaded", () => {
+    loadExamFromURL(
+        (examData) => {
+            console.log("Exam loaded via URL:", examData);
+
+            // Minimal validation reuse
+            if (!validateExam(examData)) {
+                return;
+            }
+
+            // Skip login screen
+            DOM.screens.login.classList.remove("active");
+
+            // Start exam directly
+            startExam(examData);
+        },
+        (errorMessage) => {
+            console.warn("No exam auto-loaded:", errorMessage);
+            // This is expected when opening /student/ normally
+        }
+    );
+});
+
 
 // AUTO-START DETECTION
 initResumeDetection();
