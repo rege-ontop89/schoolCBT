@@ -1,0 +1,220 @@
+{
+  "examId": "ENG-2025-001",
+  "version": "1.0.0",
+  "metadata": {
+    "title": "English First Term Examination",
+    "subject": "English",
+    "class": "JSS2",
+    "term": "First Term",
+    "academicYear": "2024/2025",
+    "createdAt": "2025-12-24T11:30:40.209Z",
+    "createdBy": "Mr. Areghe",
+    "instructions": "Answer all questions."
+  },
+  "settings": {
+    "duration": 40,
+    "totalMarks": 15,
+    "passMark": 10,
+    "shuffleQuestions": true,
+    "shuffleOptions": true,
+    "showResults": false,
+    "allowReview": false
+  },
+  "questions": [
+    {
+      "questionId": "Q001",
+      "questionNumber": 1,
+      "questionText": "Choose the correct plural form of the word \"child\".",
+      "options": {
+        "A": "Childs",
+        "B": "Childes",
+        "C": "Children",
+        "D": "Childrens"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q002",
+      "questionNumber": 2,
+      "questionText": "Which of the following is a noun?",
+      "options": {
+        "A": "Quickly",
+        "B": "Happiness",
+        "C": "Run",
+        "D": "Blue"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q003",
+      "questionNumber": 3,
+      "questionText": "Choose the correct sentence.",
+      "options": {
+        "A": "She don't like rice.",
+        "B": "She doesn't likes rice.",
+        "C": "She doesn't like rice.",
+        "D": "She don't likes rice."
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q004",
+      "questionNumber": 4,
+      "questionText": "What is the opposite of the word \"ancient\"?",
+      "options": {
+        "A": "Old",
+        "B": "Modern",
+        "C": "Past",
+        "D": "Former"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q005",
+      "questionNumber": 5,
+      "questionText": "Choose the correct spelling.",
+      "options": {
+        "A": "Neccessary",
+        "B": "Necesary",
+        "C": "Necessary",
+        "D": "Nessessary"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q006",
+      "questionNumber": 6,
+      "questionText": "Which word is an adjective?",
+      "options": {
+        "A": "Beauty",
+        "B": "Beautiful",
+        "C": "Beautify",
+        "D": "Beautifully"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q007",
+      "questionNumber": 7,
+      "questionText": "Choose the correct punctuation for the sentence: What time are we leaving",
+      "options": {
+        "A": ".",
+        "B": "!",
+        "C": "?",
+        "D": ","
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q008",
+      "questionNumber": 8,
+      "questionText": "Which of these is a pronoun?",
+      "options": {
+        "A": "Table",
+        "B": "Run",
+        "C": "He",
+        "D": "Quickly"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q009",
+      "questionNumber": 9,
+      "questionText": "Identify the verb in the sentence: \"The boy kicked the ball.\"",
+      "options": {
+        "A": "Boy",
+        "B": "Kicked",
+        "C": "Ball",
+        "D": "The"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q010",
+      "questionNumber": 10,
+      "questionText": "Choose the correct tense: \"She _____ to school every day.\"",
+      "options": {
+        "A": "go",
+        "B": "goes",
+        "C": "going",
+        "D": "gone"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q011",
+      "questionNumber": 11,
+      "questionText": "Which word is a conjunction?",
+      "options": {
+        "A": "And",
+        "B": "Very",
+        "C": "Tall",
+        "D": "Slowly"
+      },
+      "correctAnswer": "A",
+      "marks": 1
+    },
+    {
+      "questionId": "Q012",
+      "questionNumber": 12,
+      "questionText": "Choose the correct article: \"___ apple a day keeps the doctor away.\"",
+      "options": {
+        "A": "A",
+        "B": "An",
+        "C": "The",
+        "D": "No article"
+      },
+      "correctAnswer": "B",
+      "marks": 1
+    },
+    {
+      "questionId": "Q013",
+      "questionNumber": 13,
+      "questionText": "What type of sentence is this? \"Please close the door.\"",
+      "options": {
+        "A": "Declarative",
+        "B": "Interrogative",
+        "C": "Imperative",
+        "D": "Exclamatory"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q014",
+      "questionNumber": 14,
+      "questionText": "Choose the correct comparative form of \"good\".",
+      "options": {
+        "A": "Gooder",
+        "B": "More good",
+        "C": "Better",
+        "D": "Best"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    },
+    {
+      "questionId": "Q015",
+      "questionNumber": 15,
+      "questionText": "Which word is an adverb?",
+      "options": {
+        "A": "Fast",
+        "B": "Runner",
+        "C": "Quickly",
+        "D": "Speed"
+      },
+      "correctAnswer": "C",
+      "marks": 1
+    }
+  ]
+}

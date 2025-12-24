@@ -1,7 +1,16 @@
-[
-    {
-        "id": "GK-2024-001",
-        "title": "General Knowledge Assessment",
-        "filename": "sample_exam.json"
-    }
-]
+{
+    "exams": [
+        {
+            "id": "ENG-2025-001",
+            "title": "English First Term Examination",
+            "subject": "English",
+            "class": "JSS2",
+            "term": "First Term",
+            "academicYear": "2024/2025",
+            "file": "english_jss2_first_term_2025.json",
+            "duration": 40,
+            "totalMarks": 15,
+            "active": true
+        }
+    ]
+}
