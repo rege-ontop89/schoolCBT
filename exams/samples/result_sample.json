@@ -1,0 +1,55 @@
+{
+    "submissionId": "SUB-20251222-A1B2C3",
+    "version": "1.0.0",
+    "student": {
+        "fullName": "Test Student",
+        "registrationNumber": "TST/2025/001",
+        "class": "JSS1"
+    },
+    "exam": {
+        "examId": "TEST-2025-001",
+        "title": "Integration Test Exam",
+        "subject": "Computer Science",
+        "term": "First Term",
+        "academicYear": "2024/2025"
+    },
+    "answers": [
+        {
+            "questionId": "Q001",
+            "selectedOption": "A",
+            "isCorrect": true,
+            "marksAwarded": 2
+        },
+        {
+            "questionId": "Q002",
+            "selectedOption": "C",
+            "isCorrect": false,
+            "marksAwarded": 0
+        }
+    ],
+    "scoring": {
+        "totalQuestions": 2,
+        "attemptedQuestions": 2,
+        "correctAnswers": 1,
+        "wrongAnswers": 1,
+        "unansweredQuestions": 0,
+        "totalMarks": 4,
+        "obtainedMarks": 2,
+        "percentage": 50.00,
+        "passed": true
+    },
+    "timing": {
+        "startedAt": "2025-12-22T10:00:00Z",
+        "submittedAt": "2025-12-22T10:30:00Z",
+        "durationAllowed": 60,
+        "durationUsed": 30
+    },
+    "submission": {
+        "type": "manual",
+        "clientTimestamp": "2025-12-22T10:30:01Z"
+    },
+    "integrity": {
+        "violations": 0,
+        "violationLog": []
+    }
+}

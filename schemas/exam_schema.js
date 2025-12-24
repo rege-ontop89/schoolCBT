@@ -1,0 +1,213 @@
+/**
+ * Exam Schema Definition
+ * assigned to window.examSchema for local file access without fetch/CORS
+ */
+window.examSchema = {
+    "title": "Exam Schema",
+    "description": "Schema for SchoolCBT objective examination files",
+    "type": "object",
+    "required": [
+        "examId",
+        "version",
+        "metadata",
+        "settings",
+        "questions"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "examId": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,4}-[0-9]{4}-[0-9]{3}$",
+            "description": "Unique exam identifier. Format: SUBJ-YEAR-SEQ (e.g., MATH-2025-001)"
+        },
+        "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "description": "Schema version in semver format",
+            "const": "1.0.0"
+        },
+        "metadata": {
+            "type": "object",
+            "required": [
+                "title",
+                "subject",
+                "class",
+                "term",
+                "academicYear",
+                "createdAt"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 100,
+                    "description": "Display title of the exam"
+                },
+                "subject": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50,
+                    "description": "Subject name (e.g., Mathematics, English)"
+                },
+                "class": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20,
+                    "description": "Target class/grade (e.g., JSS1, SS2, Grade 10)"
+                },
+                "term": {
+                    "type": "string",
+                    "enum": ["First Term", "Second Term", "Third Term"],
+                    "description": "Academic term"
+                },
+                "academicYear": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4}/[0-9]{4}$",
+                    "description": "Academic year in format YYYY/YYYY (e.g., 2024/2025)"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 timestamp of exam creation"
+                },
+                "createdBy": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Name of exam creator (optional)"
+                },
+                "instructions": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "General instructions for students (optional)"
+                }
+            }
+        },
+        "settings": {
+            "type": "object",
+            "required": [
+                "duration",
+                "totalMarks",
+                "passMark",
+                "shuffleQuestions",
+                "shuffleOptions"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 180,
+                    "description": "Exam duration in minutes"
+                },
+                "totalMarks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Total marks obtainable"
+                },
+                "passMark": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Minimum marks to pass"
+                },
+                "shuffleQuestions": {
+                    "type": "boolean",
+                    "description": "Whether to randomize question order per student"
+                },
+                "shuffleOptions": {
+                    "type": "boolean",
+                    "description": "Whether to randomize option order per question"
+                },
+                "showResults": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to show score to student after submission"
+                },
+                "allowReview": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether student can review answers before submission"
+                }
+            }
+        },
+        "questions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "description": "Array of exam questions",
+            "items": {
+                "type": "object",
+                "required": [
+                    "questionId",
+                    "questionNumber",
+                    "questionText",
+                    "options",
+                    "correctAnswer",
+                    "marks"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "questionId": {
+                        "type": "string",
+                        "pattern": "^Q[0-9]{3}$",
+                        "description": "Unique question identifier (e.g., Q001, Q002)"
+                    },
+                    "questionNumber": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Display order number"
+                    },
+                    "questionText": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 2000,
+                        "description": "The question text"
+                    },
+                    "options": {
+                        "type": "object",
+                        "required": ["A", "B", "C", "D"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "A": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Option A text"
+                            },
+                            "B": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Option B text"
+                            },
+                            "C": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Option C text"
+                            },
+                            "D": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Option D text"
+                            }
+                        },
+                        "description": "Four answer options (A, B, C, D)"
+                    },
+                    "correctAnswer": {
+                        "type": "string",
+                        "enum": ["A", "B", "C", "D"],
+                        "description": "The correct option key"
+                    },
+                    "marks": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10,
+                        "description": "Marks awarded for correct answer"
+                    }
+                }
+            }
+        }
+    }
+};

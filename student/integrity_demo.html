@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrity Module Test</title>
+</head>
+
+<body>
+    <h1>Integrity Module Test</h1>
+    <button id="start-btn">Start Monitoring</button>
+    <button id="fullscreen-btn">Go Fullscreen</button>
+    <button id="stop-btn">Stop Monitoring</button>
+
+    <div id="status">Status: Inactive</div>
+    <div id="violation-count">Violations: 0</div>
+    <ul id="log"></ul>
+
+    <script src="exam-integrity.js"></script>
+    <script>
+        const statusEl = document.getElementById('status');
+        const countEl = document.getElementById('violation-count');
+        const logEl = document.getElementById('log');
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            IntegrityModule.init({
+                autoSubmitOnViolation: true,
+                violationThreshold: 2
+            });
+            statusEl.textContent = 'Status: Active';
+
+            IntegrityModule.onViolation((v, count, max) => {
+                const li = document.createElement('li');
+                li.textContent = `${v.timestamp}: ${v.type} (${count}/${max})`;
+                logEl.appendChild(li);
+                countEl.textContent = `Violations: ${count}`;
+            });
+
+            IntegrityModule.onAutoSubmit(() => {
+                // alert('AUTO SUBMIT TRIGGERED!');
+                const li = document.createElement('li');
+                li.textContent = 'AUTO SUBMIT TRIGGERED!';
+                li.style.color = 'red';
+                logEl.appendChild(li);
+                statusEl.textContent = 'Status: Submitted';
+            });
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            IntegrityModule.requestFullscreen();
+        });
+
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            IntegrityModule.destroy();
+            statusEl.textContent = 'Status: Inactive';
+        });
+
+        // Helper to simulate events for testing
+        window.simulateVisibilityChange = () => {
+            Object.defineProperty(document, 'hidden', { value: true, writable: true });
+            document.dispatchEvent(new Event('visibilitychange'));
+            // Reset
+            Object.defineProperty(document, 'hidden', { value: false, writable: true });
+        };
+
+        window.simulateBlur = () => {
+            // Mock hidden as false so it registers as blur not tab switch
+            Object.defineProperty(document, 'hidden', { value: false, writable: true });
+            window.dispatchEvent(new Event('blur'));
+        };
+
+    </script>
+</body>
+
+</html>

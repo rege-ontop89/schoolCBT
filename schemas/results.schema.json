@@ -1,0 +1,304 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://schoolcbt.local/schemas/results.schema.json",
+    "title": "Results Schema",
+    "description": "Schema for SchoolCBT exam result submissions to Google Sheets",
+    "type": "object",
+    "required": [
+        "submissionId",
+        "version",
+        "student",
+        "exam",
+        "answers",
+        "scoring",
+        "timing",
+        "submission"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "submissionId": {
+            "type": "string",
+            "pattern": "^SUB-[0-9]{8}-[A-Z0-9]{6}$",
+            "description": "Unique submission ID. Format: SUB-YYYYMMDD-RANDOM (e.g., SUB-20251222-A1B2C3)"
+        },
+        "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "description": "Schema version in semver format",
+            "const": "1.0.0"
+        },
+        "student": {
+            "type": "object",
+            "required": [
+                "fullName",
+                "registrationNumber",
+                "class"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "fullName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "pattern": "^[A-Za-z\\s\\-']+$",
+                    "description": "Student's full name (letters, spaces, hyphens, apostrophes only)"
+                },
+                "registrationNumber": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 30,
+                    "description": "Student's school registration/admission number"
+                },
+                "class": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20,
+                    "description": "Student's class/grade"
+                }
+            }
+        },
+        "exam": {
+            "type": "object",
+            "required": [
+                "examId",
+                "title",
+                "subject",
+                "term",
+                "academicYear"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "examId": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2,4}-[0-9]{4}-[0-9]{3}$",
+                    "description": "Reference to the exam taken"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Exam title for reference"
+                },
+                "subject": {
+                    "type": "string",
+                    "description": "Subject name"
+                },
+                "term": {
+                    "type": "string",
+                    "enum": [
+                        "First Term",
+                        "Second Term",
+                        "Third Term"
+                    ],
+                    "description": "Academic term"
+                },
+                "academicYear": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4}/[0-9]{4}$",
+                    "description": "Academic year"
+                }
+            }
+        },
+        "answers": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Array of student's answers",
+            "items": {
+                "type": "object",
+                "required": [
+                    "questionId",
+                    "selectedOption",
+                    "isCorrect",
+                    "marksAwarded"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "questionId": {
+                        "type": "string",
+                        "pattern": "^Q[0-9]{3}$",
+                        "description": "Reference to question ID"
+                    },
+                    "selectedOption": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "A",
+                            "B",
+                            "C",
+                            "D",
+                            null
+                        ],
+                        "description": "Student's selected option (null if unanswered)"
+                    },
+                    "isCorrect": {
+                        "type": "boolean",
+                        "description": "Whether the answer is correct"
+                    },
+                    "marksAwarded": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Marks awarded for this question"
+                    }
+                }
+            }
+        },
+        "scoring": {
+            "type": "object",
+            "required": [
+                "totalQuestions",
+                "attemptedQuestions",
+                "correctAnswers",
+                "wrongAnswers",
+                "unansweredQuestions",
+                "totalMarks",
+                "obtainedMarks",
+                "percentage",
+                "passed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "totalQuestions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Total number of questions in exam"
+                },
+                "attemptedQuestions": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of questions answered"
+                },
+                "correctAnswers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of correct answers"
+                },
+                "wrongAnswers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of wrong answers"
+                },
+                "unansweredQuestions": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of unanswered questions"
+                },
+                "totalMarks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Total marks obtainable"
+                },
+                "obtainedMarks": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Marks obtained by student"
+                },
+                "percentage": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Score as percentage (2 decimal places)"
+                },
+                "passed": {
+                    "type": "boolean",
+                    "description": "Whether student passed based on passMark"
+                }
+            }
+        },
+        "timing": {
+            "type": "object",
+            "required": [
+                "startedAt",
+                "submittedAt",
+                "durationAllowed",
+                "durationUsed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "startedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 timestamp when exam started"
+                },
+                "submittedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 timestamp when exam was submitted"
+                },
+                "durationAllowed": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Allowed duration in minutes"
+                },
+                "durationUsed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Actual duration used in minutes"
+                }
+            }
+        },
+        "submission": {
+            "type": "object",
+            "required": [
+                "type",
+                "clientTimestamp"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "auto-timeout",
+                        "auto-violation"
+                    ],
+                    "description": "How the exam was submitted"
+                },
+                "clientTimestamp": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Client-side submission timestamp"
+                }
+            }
+        },
+        "integrity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "violations": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Number of integrity violations detected"
+                },
+                "violationLog": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "type",
+                            "timestamp"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "tab-switch",
+                                    "window-blur",
+                                    "fullscreen-exit"
+                                ],
+                                "description": "Type of violation"
+                            },
+                            "timestamp": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "When violation occurred"
+                            }
+                        }
+                    },
+                    "description": "Log of integrity violations"
+                }
+            },
+            "description": "Integrity monitoring data (optional)"
+        }
+    }
+}

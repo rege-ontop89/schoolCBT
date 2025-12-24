@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SchoolCBT Student Exam</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="app-container">
+
+        <!-- SECTION: LOGIN/START SCREEN -->
+        <section id="login-screen" class="screen active">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="icon-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                    </div>
+                    <h1>Computer-Based Test</h1>
+                    <p>Enter your details and load an exam to begin.</p>
+                </div>
+
+                <!-- Resume Alert (Non-blocking) -->
+                <div id="resume-alert" class="warning-box"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;"
+                    hidden>
+                    <div>
+                        <strong>Unfinished Exam Found</strong><br>
+                        <span id="resume-alert-name" style="font-size: 0.85rem;"></span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" id="btn-resume-dismiss" class="btn btn-outline"
+                            style="padding: 0.5rem 1rem; font-size: 0.85rem;">Start New</button>
+                        <button type="button" id="btn-resume-trigger" class="btn btn-primary"
+                            style="padding: 0.5rem 1rem; font-size: 0.85rem;">Resume</button>
+                    </div>
+                </div>
+
+                <form id="details-form">
+                    <div class="form-group">
+                        <label for="student-name">Full Name</label>
+                        <input type="text" id="student-name" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="student-class">Class</label>
+                        <select id="student-class" required>
+                            <option value="" disabled selected>Select your class</option>
+                            <option value="JSS 1">JSS 1</option>
+                            <option value="JSS 2">JSS 2</option>
+                            <option value="JSS 3">JSS 3</option>
+                            <option value="SS 1">SS 1</option>
+                            <option value="SS 2">SS 2</option>
+                            <option value="SS 3">SS 3</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="student-seat">Seat Number</label>
+                        <input type="text" id="student-seat" placeholder="e.g., A12" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exam-select">Select Exam</label>
+                        <select id="exam-select" required disabled>
+                            <option value="" disabled selected>Loading exams...</option>
+                        </select>
+                        <small class="hint" id="exam-loading-hint">Fetching available exams...</small>
+                    </div>
+
+                    <div id="login-error" class="error-message" hidden></div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Start Exam</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SECTION: EXAM SCREEN -->
+        <section id="exam-screen" class="screen" hidden>
+
+            <!-- TOP BAR -->
+            <header class="exam-header">
+                <div class="student-info">
+                    <span class="student-name-display" id="display-name">Student Name</span>
+                </div>
+                <div class="exam-title-group">
+                    <h2 id="exam-subject">Subject</h2>
+                    <span id="exam-class">Class</span>
+                </div>
+                <div class="timer-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timer-text">00:00</span>
+                </div>
+            </header>
+
+            <!-- PROGRESS BAR -->
+            <div class="progress-container">
+                <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+
+            <!-- MAIN CONTENT AREA -->
+            <main class="exam-main">
+                <div class="question-header">
+                    <span class="question-count">Question <span id="current-q-num">1</span> of <span
+                            id="total-q-num">10</span></span>
+                    <div class="status-pills">
+                        <span class="pill pill-dark">Answered: <span id="answered-count">0</span></span>
+                        <span class="pill pill-light">Unanswered: <span id="unanswered-count">10</span></span>
+                    </div>
+                </div>
+
+                <div class="question-card">
+                    <div class="question-text" id="question-text">
+                        <!-- Question content goes here -->
+                    </div>
+
+                    <div class="options-grid" id="options-container">
+                        <!-- Options injected by JS -->
+                    </div>
+                </div>
+            </main>
+
+            <!-- FOOTER NAVIGATION -->
+            <footer class="exam-footer">
+
+                <!-- Quick Nav (Palette) -->
+                <div class="quick-nav-wrapper">
+                    <span class="label">Quick Navigation</span>
+                    <div class="palette-scroll" id="question-palette">
+                        <!-- Question numbers injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-wrapper">
+                    <button class="btn btn-outline" id="btn-prev" disabled>&lt; Previous</button>
+
+                    <button class="btn btn-outline" id="btn-skip">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 19 22 12 13 5 13 19"></polygon>
+                            <polygon points="2 19 11 12 2 5 2 19"></polygon>
+                        </svg>
+                        Skip Question
+                    </button>
+
+                    <button class="btn btn-dark" id="btn-next">Next &gt;</button>
+
+                    <button class="btn btn-success hidden" id="btn-finish">Finish Exam</button>
+                </div>
+
+            </footer>
+
+        </section>
+
+        <!-- SECTION: RESULTS SCREEN -->
+        <section id="result-screen" class="screen" hidden>
+            <div class="result-card">
+                <div class="result-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <h2>Exam Submitted Successfully!</h2>
+                <p>Your answers have been recorded. Thank you for completing the exam.</p>
+
+                <div class="score-summary">
+                    <div class="summary-row">
+                        <span>Student:</span>
+                        <span class="val" id="res-student-name">Name</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Subject:</span>
+                        <span class="val" id="res-subject">Subject</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Questions:</span>
+                        <span class="val" id="res-total">10</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Score:</span>
+                        <span class="val highlight" id="res-score">-- / --</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-dark btn-block" onclick="location.reload()">Return to Home</button>
+            </div>
+        </section>
+
+        <!-- MODAL OVERLAY -->
+        <div id="modal-overlay" class="modal-overlay" hidden>
+            <div class="modal">
+                <h3>Submit Exam?</h3>
+                <p>Are you sure you want to finish and submit your exam?</p>
+                <div class="warning-box" id="modal-warning" hidden>
+                    Warning: You have <span id="modal-unanswered">0</span> unanswered questions.
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="btn-modal-cancel">Go Back</button>
+                    <button class="btn btn-success" id="btn-modal-confirm">Submit Now</button>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <!-- Shared Validation (CTR-004) -->
+    <script src="../shared/vendor/ajv.min.js"></script>
+    <script src="../schemas/exam_schema.js"></script>
+    <script src="../shared/validator.js"></script>
+
+    <!-- Integrity Module -->
+    <script src="exam-integrity.js"></script>
+    <!-- Sheets Submission Module -->
+    <script src="sheets-submitter.js"></script>
+    <!-- Main Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>

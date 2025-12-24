@@ -1,0 +1,155 @@
+{
+    "examId": "GEN-2025-001",
+    "version": "1.0.0",
+    "metadata": {
+        "title": "General Knowledge Assessment",
+        "subject": "General Studies",
+        "class": "JSS 2",
+        "term": "First Term",
+        "academicYear": "2024/2025",
+        "createdAt": "2025-12-22T10:00:00Z",
+        "createdBy": "Admin",
+        "instructions": "Answer all questions. Each question carries 2 marks."
+    },
+    "settings": {
+        "duration": 30,
+        "totalMarks": 20,
+        "passMark": 10,
+        "shuffleQuestions": true,
+        "shuffleOptions": true,
+        "showResults": true,
+        "allowReview": true
+    },
+    "questions": [
+        {
+            "questionId": "Q001",
+            "questionNumber": 1,
+            "questionText": "What is the capital of Nigeria?",
+            "options": {
+                "A": "Lagos",
+                "B": "Abuja",
+                "C": "Kano",
+                "D": "Port Harcourt"
+            },
+            "correctAnswer": "B",
+            "marks": 2
+        },
+        {
+            "questionId": "Q002",
+            "questionNumber": 2,
+            "questionText": "Which continent is Nigeria located in?",
+            "options": {
+                "A": "Asia",
+                "B": "Europe",
+                "C": "Africa",
+                "D": "South America"
+            },
+            "correctAnswer": "C",
+            "marks": 2
+        },
+        {
+            "questionId": "Q003",
+            "questionNumber": 3,
+            "questionText": "What is the chemical symbol for Water?",
+            "options": {
+                "A": "O2",
+                "B": "H2O",
+                "C": "CO2",
+                "D": "NaCl"
+            },
+            "correctAnswer": "B",
+            "marks": 2
+        },
+        {
+            "questionId": "Q004",
+            "questionNumber": 4,
+            "questionText": "Who is the current President of the United States (as of 2024)?",
+            "options": {
+                "A": "Barack Obama",
+                "B": "Donald Trump",
+                "C": "Joe Biden",
+                "D": "George Bush"
+            },
+            "correctAnswer": "C",
+            "marks": 2
+        },
+        {
+            "questionId": "Q005",
+            "questionNumber": 5,
+            "questionText": "How many states are in Nigeria?",
+            "options": {
+                "A": "30",
+                "B": "36",
+                "C": "40",
+                "D": "35"
+            },
+            "correctAnswer": "B",
+            "marks": 2
+        },
+        {
+            "questionId": "Q006",
+            "questionNumber": 6,
+            "questionText": "Which is the largest ocean in the world?",
+            "options": {
+                "A": "Atlantic Ocean",
+                "B": "Indian Ocean",
+                "C": "Pacific Ocean",
+                "D": "Arctic Ocean"
+            },
+            "correctAnswer": "C",
+            "marks": 2
+        },
+        {
+            "questionId": "Q007",
+            "questionNumber": 7,
+            "questionText": "What is 5 multiplied by 5?",
+            "options": {
+                "A": "10",
+                "B": "20",
+                "C": "25",
+                "D": "55"
+            },
+            "correctAnswer": "C",
+            "marks": 2
+        },
+        {
+            "questionId": "Q008",
+            "questionNumber": 8,
+            "questionText": "Which animal is known as the King of the Jungle?",
+            "options": {
+                "A": "Tiger",
+                "B": "Elephant",
+                "C": "Lion",
+                "D": "Giraffe"
+            },
+            "correctAnswer": "C",
+            "marks": 2
+        },
+        {
+            "questionId": "Q009",
+            "questionNumber": 9,
+            "questionText": "The colours of the Nigerian flag are?",
+            "options": {
+                "A": "Green White Green",
+                "B": "Red White Blue",
+                "C": "Green White Red",
+                "D": "Blue White Blue"
+            },
+            "correctAnswer": "A",
+            "marks": 2
+        },
+        {
+            "questionId": "Q010",
+            "questionNumber": 10,
+            "questionText": "What happens when you boil water?",
+            "options": {
+                "A": "It freezes",
+                "B": "It turns to steam",
+                "C": "It turns solid",
+                "D": "Nothing happens"
+            },
+            "correctAnswer": "B",
+            "marks": 2
+        }
+    ]
+}

@@ -1,0 +1,90 @@
+{
+    "examId": "MATH-2025-001",
+    "version": "1.0.0",
+    "metadata": {
+        "title": "Mathematics First Term Examination",
+        "subject": "Mathematics",
+        "class": "JSS1",
+        "term": "First Term",
+        "academicYear": "2024/2025",
+        "createdAt": "2025-12-22T15:30:00.000Z",
+        "createdBy": "Mr. Johnson",
+        "instructions": "Answer all questions. Choose the best option from A, B, C, or D. No calculators allowed."
+    },
+    "settings": {
+        "duration": 60,
+        "totalMarks": 50,
+        "passMark": 25,
+        "shuffleQuestions": true,
+        "shuffleOptions": true,
+        "showResults": true,
+        "allowReview": false
+    },
+    "questions": [
+        {
+            "questionId": "Q001",
+            "questionNumber": 1,
+            "questionText": "What is 2 + 2?",
+            "options": {
+                "A": "3",
+                "B": "4",
+                "C": "5",
+                "D": "6"
+            },
+            "correctAnswer": "B",
+            "marks": 1
+        },
+        {
+            "questionId": "Q002",
+            "questionNumber": 2,
+            "questionText": "What is the capital of Nigeria?",
+            "options": {
+                "A": "Lagos",
+                "B": "Abuja",
+                "C": "Kano",
+                "D": "Port Harcourt"
+            },
+            "correctAnswer": "B",
+            "marks": 1
+        },
+        {
+            "questionId": "Q003",
+            "questionNumber": 3,
+            "questionText": "Which of the following is a prime number?",
+            "options": {
+                "A": "4",
+                "B": "6",
+                "C": "7",
+                "D": "8"
+            },
+            "correctAnswer": "C",
+            "marks": 1
+        },
+        {
+            "questionId": "Q004",
+            "questionNumber": 4,
+            "questionText": "What is 5 × 6?",
+            "options": {
+                "A": "25",
+                "B": "30",
+                "C": "35",
+                "D": "40"
+            },
+            "correctAnswer": "B",
+            "marks": 1
+        },
+        {
+            "questionId": "Q005",
+            "questionNumber": 5,
+            "questionText": "What is the square root of 16?",
+            "options": {
+                "A": "2",
+                "B": "4",
+                "C": "6",
+                "D": "8"
+            },
+            "correctAnswer": "B",
+            "marks": 1
+        }
+    ]
+}
