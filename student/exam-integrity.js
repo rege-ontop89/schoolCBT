@@ -7,7 +7,7 @@
  * - Log integrity violations
  * - Trigger auto-submission on threshold exceeded
  * 
- * @version 1.0.0
+ * @version 1.1.0
  * @author Exam Integrity & Control Agent
  */
 
@@ -37,10 +37,80 @@ const IntegrityModule = (function () {
     let _handlers = {};
 
     /**
+     * Show warning alert to user
+     * @param {string} type - Type of violation
+     * @param {number} count - Current violation count
+     * @param {number} max - Maximum allowed violations
+     */
+    function _showWarning(type, count, max) {
+        if (!_config.enableWarnings) return;
+
+        let message = '';
+        const remaining = max - count;
+
+        switch (type) {
+            case 'fullscreen-exit':
+                if (count >= max) {
+                    message = '⚠️ EXAM TERMINATED\n\nYou have exited fullscreen too many times.\nYour exam will now be auto-submitted.';
+                } else {
+                    message = `⚠️ WARNING #${count}\n\nYou must remain in fullscreen mode during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
+                }
+                break;
+            case 'tab-switch':
+                if (count >= max) {
+                    message = '⚠️ EXAM TERMINATED\n\nYou have switched tabs too many times.\nYour exam will now be auto-submitted.';
+                } else {
+                    message = `⚠️ WARNING #${count}\n\nYou must not switch tabs during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
+                }
+                break;
+            case 'window-blur':
+                if (count >= max) {
+                    message = '⚠️ EXAM TERMINATED\n\nYou have lost focus too many times.\nYour exam will now be auto-submitted.';
+                } else {
+                    message = `⚠️ WARNING #${count}\n\nYou must keep the exam window in focus.\n\nViolations remaining before auto-submission: ${remaining}`;
+                }
+                break;
+        }
+
+        if (message) {
+            alert(message);
+        }
+    }
+
+    /**
+     * Force return to fullscreen after exit
+     */
+    function _enforceFullscreen() {
+        // Small delay to allow the exit to complete before re-requesting
+        setTimeout(() => {
+            if (_state.isActive) {
+                console.log('[Integrity] Re-requesting fullscreen after violation');
+
+                const el = _config.containerElement;
+                const rfs = el.requestFullscreen ||
+                    el.webkitRequestFullscreen ||
+                    el.mozRequestFullScreen ||
+                    el.msRequestFullscreen;
+
+                if (rfs) {
+                    rfs.call(el).catch(err => {
+                        console.error('Error re-entering fullscreen:', err);
+                        // If we can't re-enter fullscreen, log another violation
+                        if (_state.isActive) {
+                            _logViolation('fullscreen-exit', true);
+                        }
+                    });
+                }
+            }
+        }, 100);
+    }
+
+    /**
      * Log a violation and trigger callbacks
      * @param {string} type - 'tab-switch' | 'window-blur' | 'fullscreen-exit'
+     * @param {boolean} skipEnforcement - Skip fullscreen re-request (for recursive calls)
      */
-    function _logViolation(type) {
+    function _logViolation(type, skipEnforcement = false) {
         console.debug(`[Integrity] Attempting to log violation: ${type}. isActive: ${_state.isActive}`);
         if (!_state.isActive) return;
 
@@ -60,11 +130,22 @@ const IntegrityModule = (function () {
 
         console.warn(`Integrity Violation: ${type} (${_state.violations}/${_config.violationThreshold})`);
 
+        // Check if threshold exceeded
+        const thresholdExceeded = _state.violations >= _config.violationThreshold;
+
+        // Show warning BEFORE potentially auto-submitting
+        _showWarning(type, _state.violations, _config.violationThreshold);
+
         // Notify subscribers
         _callbacks.onViolation.forEach(cb => cb(violationEntry, _state.violations, _config.violationThreshold));
 
-        // Check for auto-submit
-        if (_config.autoSubmitOnViolation && _state.violations >= _config.violationThreshold) {
+        // For fullscreen exits, force back to fullscreen (unless already at threshold)
+        if (type === 'fullscreen-exit' && !thresholdExceeded && !skipEnforcement) {
+            _enforceFullscreen();
+        }
+
+        // Check for auto-submit AFTER warning shown
+        if (_config.autoSubmitOnViolation && thresholdExceeded) {
             _triggerAutoSubmit();
         }
     }
@@ -78,7 +159,7 @@ const IntegrityModule = (function () {
         console.warn('Integrity Violation Threshold Exceeded. Triggering Auto-Submit.');
         _callbacks.onAutoSubmit.forEach(cb => cb());
 
-        // Optional: deactivate after auto-submit trigger to prevent flood
+        // Deactivate after auto-submit trigger to prevent flood
         _state.isActive = false;
     }
 
@@ -119,8 +200,7 @@ const IntegrityModule = (function () {
         // 2. Window Blur (Alt+Tab or losing focus)
         _handlers.blur = (e) => {
             console.debug(`[Integrity] blur event. document.hidden: ${document.hidden}`);
-            // Log blur if the document is NOT hidden (to separate from tab switches)
-            // or if it's a window-level blur.
+            // Only log blur if document is NOT hidden (separate from tab switches)
             if (!document.hidden) {
                 _logViolation('window-blur');
             }
@@ -129,21 +209,24 @@ const IntegrityModule = (function () {
 
         // 3. Fullscreen Change
         _handlers.fullscreenChange = () => {
-            if (!document.fullscreenElement &&
-                !document.webkitFullscreenElement &&
-                !document.mozFullScreenElement &&
-                !document.msFullscreenElement) {
+            console.debug('[Integrity] fullscreenchange event fired');
 
-                // If strict mode is on, log violation immediately
-                if (_config.strictMode) {
-                    _logViolation('fullscreen-exit');
-                } else {
-                    // Otherwise just warn or re-request (handled by UI)
-                    // We still log it for the record usually, but let's stick to contract
-                    _logViolation('fullscreen-exit');
-                }
+            const isInFullscreen = !!(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement
+            );
+
+            console.debug(`[Integrity] Currently in fullscreen: ${isInFullscreen}`);
+
+            // Only log violation if user EXITED fullscreen
+            if (!isInFullscreen && _state.isActive) {
+                console.debug('[Integrity] User exited fullscreen - logging violation');
+                _logViolation('fullscreen-exit');
             }
         };
+
         ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(
             event => document.addEventListener(event, _handlers.fullscreenChange)
         );
@@ -223,11 +306,19 @@ const IntegrityModule = (function () {
         },
 
         /**
-         * toggle strict mode
+         * Toggle strict mode
          * @param {Boolean} isStrict 
          */
         setStrictMode: function (isStrict) {
             _config.strictMode = !!isStrict;
+        },
+
+        /**
+         * Manually trigger a violation (for testing)
+         * @param {string} type - Violation type
+         */
+        triggerViolation: function (type) {
+            _logViolation(type);
         },
 
         /**
