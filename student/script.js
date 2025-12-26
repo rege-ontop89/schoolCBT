@@ -1,6 +1,6 @@
 /**
 * SchoolCBT Student Exam Logic
-* Version: 1.0 - FIXED
+* Version: 1.0 - FIXED v2
 */
 
 // STATE MANAGEMENT
@@ -24,7 +24,7 @@ const state = {
         submittedAt: null,
         durationAllowed: 0
     },
-    examStartedManually: false // NEW FLAG to prevent auto-load conflict
+    examStartedManually: false
 };
 
 // DOM ELEMENTS
@@ -133,7 +133,6 @@ loadManifest();
 function handleLogin(e) {
     e.preventDefault();
 
-    // Set flag to prevent auto-load conflict
     state.examStartedManually = true;
 
     // Request fullscreen immediately to capture user gesture
@@ -279,7 +278,6 @@ function initResumeDetection() {
 }
 
 function resumeExam(savedState) {
-    // Set flag to prevent auto-load conflict
     state.examStartedManually = true;
 
     // Restore State
@@ -308,9 +306,28 @@ function resumeExam(savedState) {
         });
     }
 
-    // Switch Screens
+    // CRITICAL FIX: Properly switch screens
+    switchToScreen('exam');
+}
+
+// --- SCREEN SWITCHING HELPER (NEW) ---
+function switchToScreen(screenName) {
+    // Remove active class from all screens
     DOM.screens.login.classList.remove('active');
-    DOM.screens.exam.classList.add('active');
+    DOM.screens.exam.classList.remove('active');
+    DOM.screens.result.classList.remove('active');
+
+    // Add hidden attribute to all screens
+    DOM.screens.login.setAttribute('hidden', '');
+    DOM.screens.exam.setAttribute('hidden', '');
+    DOM.screens.result.setAttribute('hidden', '');
+
+    // Show the target screen
+    const targetScreen = DOM.screens[screenName];
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+        targetScreen.removeAttribute('hidden'); // CRITICAL: Remove the hidden attribute
+    }
 }
 
 // --- EXAM LOGIC ---
@@ -353,9 +370,8 @@ function startExam(examData) {
     loadQuestion(0);
     startTimer();
 
-    // Switch Screens
-    DOM.screens.login.classList.remove('active');
-    DOM.screens.exam.classList.add('active');
+    // CRITICAL FIX: Use new screen switching function
+    switchToScreen('exam');
 
     // Save initial state
     saveActiveState();
@@ -653,14 +669,12 @@ function submitExam(isAuto, submissionType = 'manual') {
         DOM.results.score.textContent = "Submitted (Hidden)";
     }
 
-    // Switch Screens
-    DOM.screens.exam.classList.remove('active');
-    DOM.screens.result.classList.add('active');
+    // CRITICAL FIX: Use new screen switching function
+    switchToScreen('result');
 }
 
-// --- AUTO EXAM LOAD VIA URL (FIXED) ---
+// --- AUTO EXAM LOAD VIA URL ---
 document.addEventListener("DOMContentLoaded", () => {
-    // CRITICAL FIX: Only attempt auto-load if exam wasn't started manually
     if (state.examStartedManually) {
         console.log("Exam started manually, skipping URL auto-load");
         return;
@@ -674,20 +688,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // Skip login screen
-            DOM.screens.login.classList.remove("active");
-
-            // Start exam directly
+            // Use proper screen switching
+            switchToScreen('exam');
             startExam(examData);
         },
         (errorMessage) => {
             console.log("No exam auto-loaded via URL:", errorMessage);
-            // This is expected when opening /student/ normally
-            // Just show the resume detection
             initResumeDetection();
         }
     );
 });
-
-// MOVED: Only init resume detection if NOT auto-loading from URL
-// (it's now called inside the error callback above)
