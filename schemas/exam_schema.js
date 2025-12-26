@@ -127,6 +127,28 @@ window.examSchema = {
                     "type": "boolean",
                     "default": false,
                     "description": "Whether student can review answers before submission"
+                },
+                "webhookUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Google Apps Script Web App URL for result submission (optional)"
+                },
+                "autoSubmitOnViolation": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Auto-submit exam if violation threshold exceeded"
+                },
+                "violationThreshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 3,
+                    "description": "Number of integrity violations before auto-submit (if enabled)"
+                },
+                "strictMode": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Log fullscreen exit as violation immediately"
                 }
             }
         },
