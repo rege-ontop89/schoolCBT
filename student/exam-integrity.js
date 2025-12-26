@@ -7,7 +7,7 @@
  * - Log integrity violations
  * - Trigger auto-submission on threshold exceeded
  * 
- * @version 1.2.0
+ * @version 1.3.0
  * @author Exam Integrity & Control Agent
  */
 
@@ -26,8 +26,8 @@ const IntegrityModule = (function () {
         violationLog: [],
         isActive: false,
         lastViolationTime: 0,
-        isReentering: false, // NEW: Track if we're re-entering fullscreen
-        isSubmitting: false  // NEW: Track if we're in submission process
+        isReentering: false,
+        isSubmitting: false
     };
 
     let _callbacks = {
@@ -38,52 +38,147 @@ const IntegrityModule = (function () {
     // Event handler references for cleanup
     let _handlers = {};
 
+    // Warning modal elements
+    let _warningModal = null;
+
     /**
-     * Show warning alert to user
+     * Create custom warning modal (non-blocking alternative to alert)
+     */
+    function _createWarningModal() {
+        if (_warningModal) return;
+
+        const modalHTML = `
+            <div id="integrity-warning-modal" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 999999;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            ">
+                <div style="
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 12px;
+                    max-width: 500px;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    text-align: center;
+                ">
+                    <div style="
+                        font-size: 48px;
+                        margin-bottom: 1rem;
+                    ">⚠️</div>
+                    <h2 id="integrity-warning-title" style="
+                        margin: 0 0 1rem 0;
+                        color: #dc2626;
+                        font-size: 1.5rem;
+                        font-weight: 600;
+                    ">Warning</h2>
+                    <p id="integrity-warning-message" style="
+                        margin: 0 0 1.5rem 0;
+                        color: #374151;
+                        line-height: 1.6;
+                        font-size: 1rem;
+                    "></p>
+                    <button id="integrity-warning-btn" style="
+                        background: #dc2626;
+                        color: white;
+                        border: none;
+                        padding: 0.75rem 2rem;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: background 0.2s;
+                    " onmouseover="this.style.background='#b91c1c'" 
+                       onmouseout="this.style.background='#dc2626'">
+                        Continue Exam
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        _warningModal = {
+            container: document.getElementById('integrity-warning-modal'),
+            title: document.getElementById('integrity-warning-title'),
+            message: document.getElementById('integrity-warning-message'),
+            button: document.getElementById('integrity-warning-btn')
+        };
+    }
+
+    /**
+     * Show custom warning modal
      * @param {string} type - Type of violation
      * @param {number} count - Current violation count
      * @param {number} max - Maximum allowed violations
+     * @param {Function} onClose - Callback when modal closes
      */
-    function _showWarning(type, count, max) {
-        if (!_config.enableWarnings) return;
+    function _showWarning(type, count, max, onClose) {
+        if (!_config.enableWarnings) {
+            if (onClose) onClose();
+            return;
+        }
 
+        _createWarningModal();
+
+        let title = '';
         let message = '';
         const remaining = max - count;
 
         switch (type) {
             case 'fullscreen-exit':
                 if (count >= max) {
-                    message = '⚠️ EXAM TERMINATED\n\nYou have exited fullscreen too many times.\nYour exam will now be auto-submitted.';
+                    title = 'EXAM TERMINATED';
+                    message = 'You have exited fullscreen too many times. Your exam will now be auto-submitted.';
                 } else {
-                    message = `⚠️ WARNING #${count}\n\nYou must remain in fullscreen mode during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
+                    title = `WARNING #${count}`;
+                    message = `You must remain in fullscreen mode during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
                 }
                 break;
             case 'tab-switch':
                 if (count >= max) {
-                    message = '⚠️ EXAM TERMINATED\n\nYou have switched tabs too many times.\nYour exam will now be auto-submitted.';
+                    title = 'EXAM TERMINATED';
+                    message = 'You have switched tabs too many times. Your exam will now be auto-submitted.';
                 } else {
-                    message = `⚠️ WARNING #${count}\n\nYou must not switch tabs during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
+                    title = `WARNING #${count}`;
+                    message = `You must not switch tabs during the exam.\n\nViolations remaining before auto-submission: ${remaining}`;
                 }
                 break;
             case 'window-blur':
                 if (count >= max) {
-                    message = '⚠️ EXAM TERMINATED\n\nYou have lost focus too many times.\nYour exam will now be auto-submitted.';
+                    title = 'EXAM TERMINATED';
+                    message = 'You have lost focus too many times. Your exam will now be auto-submitted.';
                 } else {
-                    message = `⚠️ WARNING #${count}\n\nYou must keep the exam window in focus.\n\nViolations remaining before auto-submission: ${remaining}`;
+                    title = `WARNING #${count}`;
+                    message = `You must keep the exam window in focus.\n\nViolations remaining before auto-submission: ${remaining}`;
                 }
                 break;
         }
 
-        if (message) {
-            alert(message);
-        }
+        _warningModal.title.textContent = title;
+        _warningModal.message.textContent = message;
+        _warningModal.container.style.display = 'flex';
+
+        // Handle button click
+        const handleClick = () => {
+            _warningModal.container.style.display = 'none';
+            _warningModal.button.removeEventListener('click', handleClick);
+            if (onClose) onClose();
+        };
+
+        _warningModal.button.addEventListener('click', handleClick);
     }
 
     /**
      * Force return to fullscreen after exit
      */
     function _enforceFullscreen() {
-        // Prevent re-entry loop
         if (_state.isReentering || _state.isSubmitting) {
             console.debug('[Integrity] Skipping fullscreen re-entry (already re-entering or submitting)');
             return;
@@ -91,7 +186,7 @@ const IntegrityModule = (function () {
 
         _state.isReentering = true;
 
-        console.log('[Integrity] Requesting fullscreen re-entry immediately');
+        console.log('[Integrity] Requesting fullscreen re-entry');
 
         const el = _config.containerElement;
         const rfs = el.requestFullscreen ||
@@ -100,11 +195,9 @@ const IntegrityModule = (function () {
             el.msRequestFullscreen;
 
         if (rfs) {
-            // Request immediately, no setTimeout
             rfs.call(el)
                 .then(() => {
                     console.log('[Integrity] Successfully re-entered fullscreen');
-                    // Keep isReentering true briefly to prevent event loop
                     setTimeout(() => {
                         _state.isReentering = false;
                     }, 500);
@@ -133,7 +226,7 @@ const IntegrityModule = (function () {
             return;
         }
 
-        // Debounce violations (prevent duplicate events within 1000ms)
+        // Debounce violations
         const now = Date.now();
         if (now - _state.lastViolationTime < 1000) {
             console.debug('[Integrity] Violation debounced (too soon after last)');
@@ -155,21 +248,33 @@ const IntegrityModule = (function () {
         // Check if threshold exceeded
         const thresholdExceeded = _state.violations >= _config.violationThreshold;
 
-        // For fullscreen exits, force back to fullscreen BEFORE showing alert (unless at threshold)
-        // This is critical because alert() blocks and browser won't allow fullscreen after alert closes
-        if (type === 'fullscreen-exit' && !thresholdExceeded) {
-            _enforceFullscreen();
-        }
-
-        // Show warning AFTER triggering fullscreen re-entry
-        _showWarning(type, _state.violations, _config.violationThreshold);
-
         // Notify subscribers
         _callbacks.onViolation.forEach(cb => cb(violationEntry, _state.violations, _config.violationThreshold));
 
-        // Check for auto-submit AFTER warning shown
-        if (_config.autoSubmitOnViolation && thresholdExceeded) {
-            _triggerAutoSubmit();
+        // For fullscreen exits, force back immediately (unless at threshold)
+        if (type === 'fullscreen-exit' && !thresholdExceeded) {
+            _enforceFullscreen();
+            // Show warning with callback to ensure it's after fullscreen attempt
+            setTimeout(() => {
+                _showWarning(type, _state.violations, _config.violationThreshold);
+            }, 100);
+        } else {
+            // For other violations or threshold exceeded, show warning immediately
+            if (thresholdExceeded) {
+                _showWarning(type, _state.violations, _config.violationThreshold, () => {
+                    // After user clicks OK on termination warning, trigger auto-submit
+                    if (_config.autoSubmitOnViolation) {
+                        _triggerAutoSubmit();
+                    }
+                });
+            } else {
+                _showWarning(type, _state.violations, _config.violationThreshold);
+            }
+        }
+
+        // Check for auto-submit (for non-fullscreen violations)
+        if (_config.autoSubmitOnViolation && thresholdExceeded && type !== 'fullscreen-exit') {
+            // Delay handled by modal callback above
         }
     }
 
@@ -182,9 +287,8 @@ const IntegrityModule = (function () {
         console.warn('Integrity Violation Threshold Exceeded. Triggering Auto-Submit.');
 
         _state.isSubmitting = true;
-        _state.isActive = false; // Deactivate immediately
+        _state.isActive = false;
 
-        // Call all auto-submit callbacks
         _callbacks.onAutoSubmit.forEach(cb => {
             try {
                 cb();
@@ -216,7 +320,6 @@ const IntegrityModule = (function () {
      * Initialize event listeners
      */
     function _initListeners() {
-        // Remove existing if any
         _removeListeners();
 
         // 1. Visibility Change (Tab Switch)
@@ -228,10 +331,9 @@ const IntegrityModule = (function () {
         };
         document.addEventListener('visibilitychange', _handlers.visibilityChange);
 
-        // 2. Window Blur (Alt+Tab or losing focus)
+        // 2. Window Blur
         _handlers.blur = (e) => {
             console.debug(`[Integrity] blur event. document.hidden: ${document.hidden}`);
-            // Only log blur if document is NOT hidden (separate from tab switches)
             if (!document.hidden && !_state.isSubmitting) {
                 _logViolation('window-blur');
             }
@@ -251,15 +353,10 @@ const IntegrityModule = (function () {
 
             console.debug(`[Integrity] Currently in fullscreen: ${isInFullscreen}, isReentering: ${_state.isReentering}`);
 
-            // Only log violation if:
-            // 1. User EXITED fullscreen
-            // 2. We're not currently in the re-entry process
-            // 3. We're not submitting
             if (!isInFullscreen && _state.isActive && !_state.isReentering && !_state.isSubmitting) {
                 console.debug('[Integrity] User exited fullscreen - logging violation');
                 _logViolation('fullscreen-exit');
             } else if (isInFullscreen && _state.isReentering) {
-                // Successfully re-entered, clear the flag
                 console.debug('[Integrity] Successfully re-entered fullscreen');
                 _state.isReentering = false;
             }
@@ -272,14 +369,8 @@ const IntegrityModule = (function () {
 
     // Public API
     return {
-        /**
-         * Initialize the integrity module
-         * @param {Object} config - Configuration options
-         */
         init: function (config = {}) {
             _config = { ..._config, ...config };
-
-            // Clean up any existing session
             this.destroy();
 
             _state = {
@@ -292,14 +383,9 @@ const IntegrityModule = (function () {
             };
 
             _initListeners();
-
             console.log('Integrity Module Initialized', _config);
         },
 
-        /**
-         * Request fullscreen mode
-         * Must be called in response to a user action
-         */
         requestFullscreen: function () {
             const el = _config.containerElement;
             const rfs = el.requestFullscreen ||
@@ -314,64 +400,37 @@ const IntegrityModule = (function () {
             }
         },
 
-        /**
-         * Get current violation stats
-         * @returns {Object} { count, log }
-         */
         getViolations: function () {
             return {
                 count: _state.violations,
-                log: [..._state.violationLog] // Return copy
+                log: [..._state.violationLog]
             };
         },
 
-        /**
-         * Register a callback for violations
-         * @param {Function} callback - (violation, count, max) => {}
-         */
         onViolation: function (callback) {
             if (typeof callback === 'function') {
                 _callbacks.onViolation.push(callback);
             }
         },
 
-        /**
-         * Register a callback for auto-submission trigger
-         * @param {Function} callback - () => {}
-         */
         onAutoSubmit: function (callback) {
             if (typeof callback === 'function') {
                 _callbacks.onAutoSubmit.push(callback);
             }
         },
 
-        /**
-         * Toggle strict mode
-         * @param {Boolean} isStrict 
-         */
         setStrictMode: function (isStrict) {
             _config.strictMode = !!isStrict;
         },
 
-        /**
-         * Manually trigger a violation (for testing)
-         * @param {string} type - Violation type
-         */
         triggerViolation: function (type) {
             _logViolation(type);
         },
 
-        /**
-         * Check if module is currently in submission state
-         * @returns {boolean}
-         */
         isSubmitting: function () {
             return _state.isSubmitting;
         },
 
-        /**
-         * Cleanup and destroy module instance
-         */
         destroy: function () {
             if (_state.isActive) {
                 console.log('Destroying Integrity Module...');
@@ -380,7 +439,12 @@ const IntegrityModule = (function () {
 
             _removeListeners();
 
-            // Clear callbacks
+            // Remove warning modal
+            if (_warningModal && _warningModal.container) {
+                _warningModal.container.remove();
+                _warningModal = null;
+            }
+
             _callbacks = {
                 onViolation: [],
                 onAutoSubmit: []
@@ -391,7 +455,6 @@ const IntegrityModule = (function () {
     };
 })();
 
-// Export for module systems or attach to window
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = IntegrityModule;
 } else {
