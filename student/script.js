@@ -79,6 +79,43 @@ const DOM = {
 // PERSISTENCE SETTINGS
 const STORAGE_KEY = 'school_cbt_active_session';
 
+// --- UTILITY FUNCTIONS ---
+/**
+ * Fisher-Yates shuffle algorithm
+ */
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+/**
+ * Shuffle question options while tracking correct answer
+ */
+function shuffleOptions(options, correctAnswer) {
+    const optionKeys = ['A', 'B', 'C', 'D'];
+    const optionPairs = optionKeys.map(key => ({ key, value: options[key] }));
+    const shuffled = shuffleArray(optionPairs);
+
+    const newOptions = {};
+    let newCorrectAnswer = correctAnswer;
+
+    shuffled.forEach((pair, index) => {
+        const newKey = optionKeys[index];
+        newOptions[newKey] = pair.value;
+
+        // Track where the correct answer moved to
+        if (pair.key === correctAnswer) {
+            newCorrectAnswer = newKey;
+        }
+    });
+
+    return { options: newOptions, correctAnswer: newCorrectAnswer };
+}
+
 // --- SHARED VALIDATOR INIT ---
 try {
     if (typeof Validator !== 'undefined' && typeof window.ajv2020 !== 'undefined' && typeof examSchema !== 'undefined') {
@@ -375,6 +412,21 @@ function startExam(examData) {
     state.exam = examData;
     state.answers = {};
     state.currentQIndex = 0;
+
+    // Shuffle questions if enabled
+    if (examData.settings.shuffleQuestions) {
+        state.exam.questions = shuffleArray([...examData.questions]);
+        console.log('[Exam] Questions shuffled for this student');
+    }
+
+    // Shuffle options if enabled
+    if (examData.settings.shuffleOptions) {
+        state.exam.questions = state.exam.questions.map(q => {
+            const shuffledOptions = shuffleOptions(q.options, q.correctAnswer);
+            return { ...q, options: shuffledOptions.options, correctAnswer: shuffledOptions.correctAnswer };
+        });
+        console.log('[Exam] Options shuffled for each question');
+    }
 
     // Initialize Metadata
     state.student.subject = examData.metadata.subject;
