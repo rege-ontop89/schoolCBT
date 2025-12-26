@@ -15,6 +15,7 @@
     "duration": 40,
     "totalMarks": 15,
     "passMark": 10,
+    "webhookUrl": "https://script.google.com/macros/s/AKfycbzVWXBN-Yj1K42XbWuI88S1TqwDHNx7Af1v2B9bFVIeTni4_P-L_yZMb62NSAdxtnBB/exec",
     "shuffleQuestions": true,
     "shuffleOptions": true,
     "showResults": false,
