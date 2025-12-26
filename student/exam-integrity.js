@@ -167,9 +167,36 @@ const IntegrityModule = (function () {
 
         // Handle button click
         const handleClick = () => {
-            _warningModal.container.style.display = 'none';
-            _warningModal.button.removeEventListener('click', handleClick);
-            if (onClose) onClose();
+            // For fullscreen violations, request fullscreen on button click (user gesture)
+            if (type === 'fullscreen-exit' && count < max) {
+                const el = _config.containerElement;
+                const rfs = el.requestFullscreen ||
+                    el.webkitRequestFullscreen ||
+                    el.mozRequestFullScreen ||
+                    el.msRequestFullscreen;
+
+                if (rfs) {
+                    rfs.call(el).then(() => {
+                        console.log('[Integrity] Returned to fullscreen via button click');
+                        _warningModal.container.style.display = 'none';
+                        _warningModal.button.removeEventListener('click', handleClick);
+                        if (onClose) onClose();
+                    }).catch(err => {
+                        console.error('Failed to return to fullscreen:', err);
+                        _warningModal.container.style.display = 'none';
+                        _warningModal.button.removeEventListener('click', handleClick);
+                        if (onClose) onClose();
+                    });
+                } else {
+                    _warningModal.container.style.display = 'none';
+                    _warningModal.button.removeEventListener('click', handleClick);
+                    if (onClose) onClose();
+                }
+            } else {
+                _warningModal.container.style.display = 'none';
+                _warningModal.button.removeEventListener('click', handleClick);
+                if (onClose) onClose();
+            }
         };
 
         _warningModal.button.addEventListener('click', handleClick);
@@ -251,13 +278,9 @@ const IntegrityModule = (function () {
         // Notify subscribers
         _callbacks.onViolation.forEach(cb => cb(violationEntry, _state.violations, _config.violationThreshold));
 
-        // For fullscreen exits, force back immediately (unless at threshold)
+        // For fullscreen exits, show warning with fullscreen re-entry on button click
         if (type === 'fullscreen-exit' && !thresholdExceeded) {
-            _enforceFullscreen();
-            // Show warning with callback to ensure it's after fullscreen attempt
-            setTimeout(() => {
-                _showWarning(type, _state.violations, _config.violationThreshold);
-            }, 100);
+            _showWarning(type, _state.violations, _config.violationThreshold);
         } else {
             // For other violations or threshold exceeded, show warning immediately
             if (thresholdExceeded) {
