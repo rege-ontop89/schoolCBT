@@ -91,34 +91,31 @@ const IntegrityModule = (function () {
 
         _state.isReentering = true;
 
-        // Small delay to allow the exit to complete before re-requesting
-        setTimeout(() => {
-            if (_state.isActive && !_state.isSubmitting) {
-                console.log('[Integrity] Re-requesting fullscreen after violation');
+        console.log('[Integrity] Requesting fullscreen re-entry immediately');
 
-                const el = _config.containerElement;
-                const rfs = el.requestFullscreen ||
-                    el.webkitRequestFullscreen ||
-                    el.mozRequestFullScreen ||
-                    el.msRequestFullscreen;
+        const el = _config.containerElement;
+        const rfs = el.requestFullscreen ||
+            el.webkitRequestFullscreen ||
+            el.mozRequestFullScreen ||
+            el.msRequestFullscreen;
 
-                if (rfs) {
-                    rfs.call(el)
-                        .then(() => {
-                            console.log('[Integrity] Successfully re-entered fullscreen');
-                            _state.isReentering = false;
-                        })
-                        .catch(err => {
-                            console.error('Error re-entering fullscreen:', err);
-                            _state.isReentering = false;
-                        });
-                } else {
+        if (rfs) {
+            // Request immediately, no setTimeout
+            rfs.call(el)
+                .then(() => {
+                    console.log('[Integrity] Successfully re-entered fullscreen');
+                    // Keep isReentering true briefly to prevent event loop
+                    setTimeout(() => {
+                        _state.isReentering = false;
+                    }, 500);
+                })
+                .catch(err => {
+                    console.error('Error re-entering fullscreen:', err);
                     _state.isReentering = false;
-                }
-            } else {
-                _state.isReentering = false;
-            }
-        }, 200);
+                });
+        } else {
+            _state.isReentering = false;
+        }
     }
 
     /**
@@ -158,16 +155,17 @@ const IntegrityModule = (function () {
         // Check if threshold exceeded
         const thresholdExceeded = _state.violations >= _config.violationThreshold;
 
-        // Show warning
+        // For fullscreen exits, force back to fullscreen BEFORE showing alert (unless at threshold)
+        // This is critical because alert() blocks and browser won't allow fullscreen after alert closes
+        if (type === 'fullscreen-exit' && !thresholdExceeded) {
+            _enforceFullscreen();
+        }
+
+        // Show warning AFTER triggering fullscreen re-entry
         _showWarning(type, _state.violations, _config.violationThreshold);
 
         // Notify subscribers
         _callbacks.onViolation.forEach(cb => cb(violationEntry, _state.violations, _config.violationThreshold));
-
-        // For fullscreen exits, force back to fullscreen (unless already at threshold)
-        if (type === 'fullscreen-exit' && !thresholdExceeded) {
-            _enforceFullscreen();
-        }
 
         // Check for auto-submit AFTER warning shown
         if (_config.autoSubmitOnViolation && thresholdExceeded) {
