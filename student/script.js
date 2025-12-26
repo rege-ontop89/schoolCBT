@@ -297,12 +297,15 @@ function resumeExam(savedState) {
     // Setup Integrity
     if (typeof IntegrityModule !== 'undefined') {
         IntegrityModule.init({
-            autoSubmitOnViolation: state.exam.settings.autoSubmitOnViolation || false,
+            autoSubmitOnViolation: state.exam.settings.autoSubmitOnViolation || true, // Default to TRUE
             violationThreshold: state.exam.settings.violationThreshold || 3,
             strictMode: state.exam.settings.strictMode || false
         });
         IntegrityModule.onAutoSubmit(() => {
-            submitExam(true, 'auto-violation');
+            console.log('[Main] Auto-submit triggered by integrity module (resume)');
+            setTimeout(() => {
+                submitExam(true, 'auto-violation');
+            }, 500);
         });
     }
 
@@ -348,12 +351,16 @@ function startExam(examData) {
     // Initialize Integrity Module
     if (typeof IntegrityModule !== 'undefined') {
         IntegrityModule.init({
-            autoSubmitOnViolation: examData.settings.autoSubmitOnViolation || false,
+            autoSubmitOnViolation: examData.settings.autoSubmitOnViolation || true, // Default to TRUE
             violationThreshold: examData.settings.violationThreshold || 3,
             strictMode: examData.settings.strictMode || false
         });
         IntegrityModule.onAutoSubmit(() => {
-            submitExam(true, 'auto-violation');
+            console.log('[Main] Auto-submit triggered by integrity module');
+            // Force submit immediately
+            setTimeout(() => {
+                submitExam(true, 'auto-violation');
+            }, 500); // Small delay to let alert close
         });
     }
 
@@ -545,7 +552,13 @@ DOM.modal.btnConfirm.addEventListener('click', () => {
 });
 
 function submitExam(isAuto, submissionType = 'manual') {
-    if (state.isSubmitted) return;
+    // Prevent multiple submissions
+    if (state.isSubmitted) {
+        console.log('[Main] Submission already in progress, ignoring duplicate call');
+        return;
+    }
+
+    console.log(`[Main] Starting exam submission. isAuto: ${isAuto}, type: ${submissionType}`);
 
     state.isSubmitted = true;
     clearInterval(state.timerId);

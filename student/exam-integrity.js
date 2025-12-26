@@ -7,7 +7,7 @@
  * - Log integrity violations
  * - Trigger auto-submission on threshold exceeded
  * 
- * @version 1.1.0
+ * @version 1.2.0
  * @author Exam Integrity & Control Agent
  */
 
@@ -25,7 +25,9 @@ const IntegrityModule = (function () {
         violations: 0,
         violationLog: [],
         isActive: false,
-        lastViolationTime: 0
+        lastViolationTime: 0,
+        isReentering: false, // NEW: Track if we're re-entering fullscreen
+        isSubmitting: false  // NEW: Track if we're in submission process
     };
 
     let _callbacks = {
@@ -81,9 +83,17 @@ const IntegrityModule = (function () {
      * Force return to fullscreen after exit
      */
     function _enforceFullscreen() {
+        // Prevent re-entry loop
+        if (_state.isReentering || _state.isSubmitting) {
+            console.debug('[Integrity] Skipping fullscreen re-entry (already re-entering or submitting)');
+            return;
+        }
+
+        _state.isReentering = true;
+
         // Small delay to allow the exit to complete before re-requesting
         setTimeout(() => {
-            if (_state.isActive) {
+            if (_state.isActive && !_state.isSubmitting) {
                 console.log('[Integrity] Re-requesting fullscreen after violation');
 
                 const el = _config.containerElement;
@@ -93,30 +103,45 @@ const IntegrityModule = (function () {
                     el.msRequestFullscreen;
 
                 if (rfs) {
-                    rfs.call(el).catch(err => {
-                        console.error('Error re-entering fullscreen:', err);
-                        // If we can't re-enter fullscreen, log another violation
-                        if (_state.isActive) {
-                            _logViolation('fullscreen-exit', true);
-                        }
-                    });
+                    rfs.call(el)
+                        .then(() => {
+                            console.log('[Integrity] Successfully re-entered fullscreen');
+                            _state.isReentering = false;
+                        })
+                        .catch(err => {
+                            console.error('Error re-entering fullscreen:', err);
+                            _state.isReentering = false;
+                        });
+                } else {
+                    _state.isReentering = false;
                 }
+            } else {
+                _state.isReentering = false;
             }
-        }, 100);
+        }, 200);
     }
 
     /**
      * Log a violation and trigger callbacks
      * @param {string} type - 'tab-switch' | 'window-blur' | 'fullscreen-exit'
-     * @param {boolean} skipEnforcement - Skip fullscreen re-request (for recursive calls)
      */
-    function _logViolation(type, skipEnforcement = false) {
-        console.debug(`[Integrity] Attempting to log violation: ${type}. isActive: ${_state.isActive}`);
-        if (!_state.isActive) return;
+    function _logViolation(type) {
+        console.debug(`[Integrity] Attempting to log violation: ${type}. isActive: ${_state.isActive}, isReentering: ${_state.isReentering}`);
 
-        // Debounce violations (prevent duplicate events within 500ms)
+        if (!_state.isActive || _state.isSubmitting) return;
+
+        // Skip if we're re-entering fullscreen (prevents loop)
+        if (_state.isReentering && type === 'fullscreen-exit') {
+            console.debug('[Integrity] Skipping fullscreen-exit log during re-entry');
+            return;
+        }
+
+        // Debounce violations (prevent duplicate events within 1000ms)
         const now = Date.now();
-        if (now - _state.lastViolationTime < 500) return;
+        if (now - _state.lastViolationTime < 1000) {
+            console.debug('[Integrity] Violation debounced (too soon after last)');
+            return;
+        }
         _state.lastViolationTime = now;
 
         _state.violations++;
@@ -133,14 +158,14 @@ const IntegrityModule = (function () {
         // Check if threshold exceeded
         const thresholdExceeded = _state.violations >= _config.violationThreshold;
 
-        // Show warning BEFORE potentially auto-submitting
+        // Show warning
         _showWarning(type, _state.violations, _config.violationThreshold);
 
         // Notify subscribers
         _callbacks.onViolation.forEach(cb => cb(violationEntry, _state.violations, _config.violationThreshold));
 
         // For fullscreen exits, force back to fullscreen (unless already at threshold)
-        if (type === 'fullscreen-exit' && !thresholdExceeded && !skipEnforcement) {
+        if (type === 'fullscreen-exit' && !thresholdExceeded) {
             _enforceFullscreen();
         }
 
@@ -154,13 +179,21 @@ const IntegrityModule = (function () {
      * Trigger auto-submission
      */
     function _triggerAutoSubmit() {
-        if (!_state.isActive) return;
+        if (!_state.isActive || _state.isSubmitting) return;
 
         console.warn('Integrity Violation Threshold Exceeded. Triggering Auto-Submit.');
-        _callbacks.onAutoSubmit.forEach(cb => cb());
 
-        // Deactivate after auto-submit trigger to prevent flood
-        _state.isActive = false;
+        _state.isSubmitting = true;
+        _state.isActive = false; // Deactivate immediately
+
+        // Call all auto-submit callbacks
+        _callbacks.onAutoSubmit.forEach(cb => {
+            try {
+                cb();
+            } catch (err) {
+                console.error('[Integrity] Error in auto-submit callback:', err);
+            }
+        });
     }
 
     /**
@@ -191,7 +224,7 @@ const IntegrityModule = (function () {
         // 1. Visibility Change (Tab Switch)
         _handlers.visibilityChange = () => {
             console.debug(`[Integrity] visibilitychange event. hidden: ${document.hidden}`);
-            if (document.hidden) {
+            if (document.hidden && !_state.isSubmitting) {
                 _logViolation('tab-switch');
             }
         };
@@ -201,7 +234,7 @@ const IntegrityModule = (function () {
         _handlers.blur = (e) => {
             console.debug(`[Integrity] blur event. document.hidden: ${document.hidden}`);
             // Only log blur if document is NOT hidden (separate from tab switches)
-            if (!document.hidden) {
+            if (!document.hidden && !_state.isSubmitting) {
                 _logViolation('window-blur');
             }
         };
@@ -218,12 +251,19 @@ const IntegrityModule = (function () {
                 document.msFullscreenElement
             );
 
-            console.debug(`[Integrity] Currently in fullscreen: ${isInFullscreen}`);
+            console.debug(`[Integrity] Currently in fullscreen: ${isInFullscreen}, isReentering: ${_state.isReentering}`);
 
-            // Only log violation if user EXITED fullscreen
-            if (!isInFullscreen && _state.isActive) {
+            // Only log violation if:
+            // 1. User EXITED fullscreen
+            // 2. We're not currently in the re-entry process
+            // 3. We're not submitting
+            if (!isInFullscreen && _state.isActive && !_state.isReentering && !_state.isSubmitting) {
                 console.debug('[Integrity] User exited fullscreen - logging violation');
                 _logViolation('fullscreen-exit');
+            } else if (isInFullscreen && _state.isReentering) {
+                // Successfully re-entered, clear the flag
+                console.debug('[Integrity] Successfully re-entered fullscreen');
+                _state.isReentering = false;
             }
         };
 
@@ -248,7 +288,9 @@ const IntegrityModule = (function () {
                 violations: 0,
                 violationLog: [],
                 isActive: true,
-                lastViolationTime: 0
+                lastViolationTime: 0,
+                isReentering: false,
+                isSubmitting: false
             };
 
             _initListeners();
@@ -319,6 +361,14 @@ const IntegrityModule = (function () {
          */
         triggerViolation: function (type) {
             _logViolation(type);
+        },
+
+        /**
+         * Check if module is currently in submission state
+         * @returns {boolean}
+         */
+        isSubmitting: function () {
+            return _state.isSubmitting;
         },
 
         /**
