@@ -1,7 +1,7 @@
 /**
- * SchoolCBT Student Exam Logic
- * Version: 1.0
- */
+* SchoolCBT Student Exam Logic
+* Version: 1.0 - FIXED
+*/
 
 // STATE MANAGEMENT
 import { loadExamFromURL } from "./exam-loader.js";
@@ -13,17 +13,18 @@ const state = {
         class: '',
         subject: ''
     },
-    exam: null,      // Loaded JSON object
+    exam: null,
     currentQIndex: 0,
-    answers: {},     // { questionId: "A" }
-    timeLeft: 0,     // Seconds
+    answers: {},
+    timeLeft: 0,
     timerId: null,
     isSubmitted: false,
     timing: {
         startedAt: null,
         submittedAt: null,
         durationAllowed: 0
-    }
+    },
+    examStartedManually: false // NEW FLAG to prevent auto-load conflict
 };
 
 // DOM ELEMENTS
@@ -37,8 +38,6 @@ const DOM = {
         form: document.getElementById('details-form'),
         inputName: document.getElementById('student-name'),
         inputClass: document.getElementById('student-class'),
-        inputName: document.getElementById('student-name'),
-        inputClass: document.getElementById('student-class'),
         inputSeat: document.getElementById('student-seat'),
         examSelect: document.getElementById('exam-select'),
         examLoadingHint: document.getElementById('exam-loading-hint'),
@@ -50,17 +49,13 @@ const DOM = {
         className: document.getElementById('exam-class'),
         timer: document.getElementById('timer-text'),
         progressBar: document.getElementById('progress-bar-fill'),
-
         qNum: document.getElementById('current-q-num'),
         qTotal: document.getElementById('total-q-num'),
-
         text: document.getElementById('question-text'),
         optionsContainer: document.getElementById('options-container'),
-
         answeredCount: document.getElementById('answered-count'),
         unansweredCount: document.getElementById('unanswered-count'),
         palette: document.getElementById('question-palette'),
-
         btnPrev: document.getElementById('btn-prev'),
         btnNext: document.getElementById('btn-next'),
         btnSkip: document.getElementById('btn-skip'),
@@ -79,7 +74,6 @@ const DOM = {
         total: document.getElementById('res-total'),
         score: document.getElementById('res-score')
     },
-
 };
 
 // PERSISTENCE SETTINGS
@@ -88,7 +82,6 @@ const STORAGE_KEY = 'school_cbt_active_session';
 // --- SHARED VALIDATOR INIT ---
 try {
     if (typeof Validator !== 'undefined' && typeof window.ajv2020 !== 'undefined' && typeof examSchema !== 'undefined') {
-        // ajv2020 is set by ajv-adapter, or we can look for Ajv
         const AjvConstructor = window.Ajv || window.ajv2020;
         if (AjvConstructor) {
             Validator.init(AjvConstructor, examSchema);
@@ -105,14 +98,11 @@ try {
 }
 
 // --- INITIALIZATION & LOGIN ---
-
 DOM.login.form.addEventListener('submit', handleLogin);
 
 // --- MANIFEST LOADING ---
-// Fetch list of exams from ../exams/manifest.json
 function loadManifest() {
     const manifestUrl = '../exams/manifest.json';
-
     fetch(manifestUrl)
         .then(response => {
             if (!response.ok) throw new Error("Failed to load exam catalog.");
@@ -121,14 +111,12 @@ function loadManifest() {
         .then(data => {
             const select = DOM.login.examSelect;
             select.innerHTML = '<option value="" disabled selected>Select an Exam...</option>';
-
             data.forEach(exam => {
                 const option = document.createElement('option');
-                option.value = exam.filename; // We'll fetch this relative to ../exams/
+                option.value = exam.filename;
                 option.textContent = exam.title;
                 select.appendChild(option);
             });
-
             select.disabled = false;
             DOM.login.examLoadingHint.hidden = true;
         })
@@ -144,6 +132,9 @@ loadManifest();
 
 function handleLogin(e) {
     e.preventDefault();
+
+    // Set flag to prevent auto-load conflict
+    state.examStartedManually = true;
 
     // Request fullscreen immediately to capture user gesture
     if (typeof IntegrityModule !== 'undefined') {
@@ -177,7 +168,6 @@ function handleLogin(e) {
             if (validateExam(json)) {
                 startExam(json);
             } else {
-                // validation error already shown by validateExam
                 btn.textContent = originalText;
                 btn.disabled = false;
             }
@@ -195,20 +185,17 @@ function showError(msg) {
 }
 
 function validateExam(json) {
-    // Shared Validator Integration
     if (typeof Validator !== 'undefined' && typeof Validator.validate === 'function') {
         const result = Validator.validate(json, 'exam');
         if (!result.valid) {
             const msg = Validator.formatErrors(result.errors);
             console.error("Exam Validation Failed:", result.errors);
-            // Use replace regex to start nicely
             showError("Invalid Exam File:\n" + msg);
             return false;
         }
         return true;
     }
 
-    // Fallback Basic Check if Validator missing
     console.warn("Shared Validator not loaded. Performing basic check.");
     if (!json.examId || !json.questions || !Array.isArray(json.questions)) {
         showError("Invalid Exam File: Missing required fields (examId, questions).");
@@ -218,11 +205,9 @@ function validateExam(json) {
 }
 
 // --- PERSISTENCE LOGIC ---
-
 function saveActiveState() {
     if (!state.exam || state.isSubmitted) return;
 
-    // Create a copy of state without the timer ID
     const dataToSave = {
         student: state.student,
         exam: state.exam,
@@ -231,7 +216,6 @@ function saveActiveState() {
         timeLeft: state.timeLeft,
         timing: state.timing
     };
-
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
 }
 
@@ -239,15 +223,12 @@ function clearActiveState() {
     localStorage.removeItem(STORAGE_KEY);
 }
 
-
-
 function initResumeDetection() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
 
     try {
         const parsed = JSON.parse(saved);
-        // Robust Check: Ensure valid structure and non-empty student name
         const isValidSession =
             parsed &&
             parsed.exam &&
@@ -257,14 +238,12 @@ function initResumeDetection() {
             parsed.student.name.trim().length > 0;
 
         if (isValidSession) {
-            // Non-blocking Alert on Login Screen
             const alertBox = document.getElementById('resume-alert');
             const alertName = document.getElementById('resume-alert-name');
             const btnResume = document.getElementById('btn-resume-trigger');
-            const btnDismiss = document.getElementById('btn-resume-dismiss'); // NEW
+            const btnDismiss = document.getElementById('btn-resume-dismiss');
 
             if (alertBox && alertName && btnResume) {
-                // Safety check for metadata
                 const subject = parsed.exam.metadata ? parsed.exam.metadata.subject : 'Unknown Subject';
                 alertName.textContent = `${parsed.student.name} - ${subject}`;
                 alertBox.hidden = false;
@@ -280,7 +259,6 @@ function initResumeDetection() {
                     }
                 };
 
-                // NEW: Dismiss Handler
                 if (btnDismiss) {
                     btnDismiss.onclick = () => {
                         if (confirm("Are you sure? This will delete your unsaved progress.")) {
@@ -301,6 +279,9 @@ function initResumeDetection() {
 }
 
 function resumeExam(savedState) {
+    // Set flag to prevent auto-load conflict
+    state.examStartedManually = true;
+
     // Restore State
     state.student = savedState.student;
     state.exam = savedState.exam;
@@ -309,13 +290,13 @@ function resumeExam(savedState) {
     state.timeLeft = savedState.timeLeft;
     state.timing = savedState.timing;
 
-    // UI Setup (similar to startExam but using restored values)
+    // UI Setup
     updateHeader();
     renderPalette();
     loadQuestion(state.currentQIndex);
     startTimer();
 
-    // Setup Integrity if needed
+    // Setup Integrity
     if (typeof IntegrityModule !== 'undefined') {
         IntegrityModule.init({
             autoSubmitOnViolation: state.exam.settings.autoSubmitOnViolation || false,
@@ -333,7 +314,6 @@ function resumeExam(savedState) {
 }
 
 // --- EXAM LOGIC ---
-
 function startExam(examData) {
     state.exam = examData;
     state.answers = {};
@@ -342,27 +322,25 @@ function startExam(examData) {
     // Initialize Metadata
     state.student.subject = examData.metadata.subject;
 
-    // Timer Setup (Minutes -> Seconds)
+    // Timer Setup
     const duration = examData.settings.duration || 30;
     state.timeLeft = duration * 60;
     state.timing.durationAllowed = duration;
     state.timing.startedAt = new Date().toISOString();
 
-    // Initialize Integrity Module (per CTR-003)
+    // Initialize Integrity Module
     if (typeof IntegrityModule !== 'undefined') {
         IntegrityModule.init({
             autoSubmitOnViolation: examData.settings.autoSubmitOnViolation || false,
             violationThreshold: examData.settings.violationThreshold || 3,
             strictMode: examData.settings.strictMode || false
         });
-
-        // Register auto-submit callback
         IntegrityModule.onAutoSubmit(() => {
             submitExam(true, 'auto-violation');
         });
     }
 
-    // Configure Sheets Submitter (if webhook URL provided)
+    // Configure Sheets Submitter
     if (typeof SheetsSubmitter !== 'undefined' && examData.settings.webhookUrl) {
         SheetsSubmitter.configure({
             webhookUrl: examData.settings.webhookUrl
@@ -391,19 +369,18 @@ function updateHeader() {
 }
 
 function startTimer() {
-    updateTimerDisplay(); // Initial draw
+    updateTimerDisplay();
     state.timerId = setInterval(() => {
         state.timeLeft--;
         updateTimerDisplay();
 
-        // Save state every 5 seconds to minimize disk writes but stay relatively fresh
         if (state.timeLeft % 5 === 0) {
             saveActiveState();
         }
 
         if (state.timeLeft <= 0) {
             clearInterval(state.timerId);
-            submitExam(true); // Auto submit
+            submitExam(true);
         }
     }, 1000);
 }
@@ -413,14 +390,12 @@ function updateTimerDisplay() {
     const s = state.timeLeft % 60;
     DOM.exam.timer.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-    // Warning color
-    if (state.timeLeft < 300) { // < 5 mins
-        DOM.exam.timer.parentElement.style.backgroundColor = '#ef4444'; // Red
+    if (state.timeLeft < 300) {
+        DOM.exam.timer.parentElement.style.backgroundColor = '#ef4444';
     }
 }
 
 // --- QUESTION NAVIGATION ---
-
 function loadQuestion(index) {
     if (index < 0 || index >= state.exam.questions.length) return;
 
@@ -439,14 +414,13 @@ function loadQuestion(index) {
 
     // Render Options
     DOM.exam.optionsContainer.innerHTML = '';
-    const currentAnswer = state.answers[q.questionId]; // Get saved answer if any
+    const currentAnswer = state.answers[q.questionId];
 
     ['A', 'B', 'C', 'D'].forEach(optKey => {
         if (q.options[optKey]) {
             const el = document.createElement('div');
             el.className = `option-item ${currentAnswer === optKey ? 'selected' : ''}`;
             el.onclick = () => selectOption(q.questionId, optKey);
-
             el.innerHTML = `
                 <div class="option-label">${optKey}</div>
                 <div class="option-content">${q.options[optKey]}</div>
@@ -458,7 +432,6 @@ function loadQuestion(index) {
     // Update Buttons
     DOM.exam.btnPrev.disabled = index === 0;
 
-    // If last question -> Show Finish, Hide Next
     if (index === state.exam.questions.length - 1) {
         DOM.exam.btnNext.classList.add('hidden');
         DOM.exam.btnFinish.classList.remove('hidden');
@@ -475,13 +448,9 @@ function selectOption(qId, optKey) {
     if (state.isSubmitted) return;
 
     state.answers[qId] = optKey;
-
-    // Update Stats
     updateStats();
-
-    // Re-render options to show selection
     loadQuestion(state.currentQIndex);
-    renderPalette(); // Update answered status dot
+    renderPalette();
     saveActiveState();
 }
 
@@ -495,7 +464,6 @@ function updateStats() {
 }
 
 // --- NAVIGATION CONTROLLERS ---
-
 DOM.exam.btnPrev.addEventListener('click', () => {
     loadQuestion(state.currentQIndex - 1);
 });
@@ -505,7 +473,6 @@ DOM.exam.btnNext.addEventListener('click', () => {
 });
 
 DOM.exam.btnSkip.addEventListener('click', () => {
-    // Simply move next without error, logic handled by loadQuestion
     loadQuestion(state.currentQIndex + 1);
 });
 
@@ -514,7 +481,6 @@ DOM.exam.btnFinish.addEventListener('click', () => {
 });
 
 // --- PALETTE ---
-
 function renderPalette() {
     DOM.exam.palette.innerHTML = '';
     state.exam.questions.forEach((q, i) => {
@@ -522,7 +488,6 @@ function renderPalette() {
         dot.className = 'nav-dot';
         dot.textContent = i + 1;
 
-        // Add classes
         if (state.answers[q.questionId]) {
             dot.classList.add('answered');
         }
@@ -536,12 +501,10 @@ function renderPalette() {
 }
 
 function updatePaletteActive() {
-    // Easier to just re-render to keep sync simple
     renderPalette();
 }
 
 // --- SUBMISSION ---
-
 function promptSubmit() {
     const total = state.exam.questions.length;
     const answered = Object.keys(state.answers).length;
@@ -566,23 +529,21 @@ DOM.modal.btnConfirm.addEventListener('click', () => {
 });
 
 function submitExam(isAuto, submissionType = 'manual') {
-    if (state.isSubmitted) return; // Prevent double submission
+    if (state.isSubmitted) return;
 
     state.isSubmitted = true;
     clearInterval(state.timerId);
     DOM.modal.overlay.hidden = true;
-    clearActiveState(); // Wipe persistence on formal submission
+    clearActiveState();
 
-    // Set submission timestamp
     state.timing.submittedAt = new Date().toISOString();
 
-    // Determine submission type
     let finalSubmissionType = submissionType;
     if (isAuto && submissionType === 'manual') {
         finalSubmissionType = 'auto-timeout';
     }
 
-    // CALCULATION & BUILD ANSWERS ARRAY
+    // CALCULATION
     let score = 0;
     let totalObtainable = 0;
     let correctCount = 0;
@@ -593,7 +554,6 @@ function submitExam(isAuto, submissionType = 'manual') {
         const selected = state.answers[q.questionId] || null;
         const marks = q.marks || 1;
         totalObtainable += marks;
-
         const isCorrect = selected === q.correctAnswer;
         const marksAwarded = isCorrect ? marks : 0;
 
@@ -614,20 +574,11 @@ function submitExam(isAuto, submissionType = 'manual') {
         };
     });
 
-    // Calculate percentage
-    const percentage = totalObtainable > 0 ?
-        Math.round((score / totalObtainable) * 10000) / 100 : 0;
-
-    // Determine pass/fail
+    const percentage = totalObtainable > 0 ? Math.round((score / totalObtainable) * 10000) / 100 : 0;
     const passMark = state.exam.settings.passMark || 50;
     const passed = percentage >= passMark;
+    const durationUsed = Math.ceil((state.timing.durationAllowed * 60 - state.timeLeft) / 60);
 
-    // Calculate duration used (in minutes)
-    const durationUsed = Math.ceil(
-        (state.timing.durationAllowed * 60 - state.timeLeft) / 60
-    );
-
-    // Get integrity data
     let integrityData = { violations: 0, violationLog: [] };
     if (typeof IntegrityModule !== 'undefined') {
         const violations = IntegrityModule.getViolations();
@@ -635,18 +586,15 @@ function submitExam(isAuto, submissionType = 'manual') {
             violations: violations.count,
             violationLog: violations.log
         };
-        IntegrityModule.destroy(); // Cleanup
+        IntegrityModule.destroy();
     }
 
-    // BUILD RESULT OBJECT (per results.schema.json)
     const resultObject = {
-        submissionId: typeof SheetsSubmitter !== 'undefined' ?
-            SheetsSubmitter.generateSubmissionId() :
-            `SUB-${Date.now()}`,
+        submissionId: typeof SheetsSubmitter !== 'undefined' ? SheetsSubmitter.generateSubmissionId() : `SUB-${Date.now()}`,
         version: "1.0.0",
         student: {
             fullName: state.student.name,
-            registrationNumber: state.student.seatNumber, // Map Seat No -> Reg No
+            registrationNumber: state.student.seatNumber,
             class: state.student.class
         },
         exam: {
@@ -687,11 +635,7 @@ function submitExam(isAuto, submissionType = 'manual') {
             console.log('Sheets submission result:', response);
             if (!response.success) {
                 console.warn('Sheets submission failed:', response.error);
-                // Store locally as backup
-                localStorage.setItem(
-                    `exam_result_${resultObject.submissionId}`,
-                    JSON.stringify(resultObject)
-                );
+                localStorage.setItem(`exam_result_${resultObject.submissionId}`, JSON.stringify(resultObject));
             }
         }).catch(err => {
             console.error('Sheets submission error:', err);
@@ -714,13 +658,18 @@ function submitExam(isAuto, submissionType = 'manual') {
     DOM.screens.result.classList.add('active');
 }
 
-// --- AUTO EXAM LOAD VIA URL (Fix 1) ---
+// --- AUTO EXAM LOAD VIA URL (FIXED) ---
 document.addEventListener("DOMContentLoaded", () => {
+    // CRITICAL FIX: Only attempt auto-load if exam wasn't started manually
+    if (state.examStartedManually) {
+        console.log("Exam started manually, skipping URL auto-load");
+        return;
+    }
+
     loadExamFromURL(
         (examData) => {
             console.log("Exam loaded via URL:", examData);
 
-            // Minimal validation reuse
             if (!validateExam(examData)) {
                 return;
             }
@@ -732,12 +681,13 @@ document.addEventListener("DOMContentLoaded", () => {
             startExam(examData);
         },
         (errorMessage) => {
-            console.warn("No exam auto-loaded:", errorMessage);
+            console.log("No exam auto-loaded via URL:", errorMessage);
             // This is expected when opening /student/ normally
+            // Just show the resume detection
+            initResumeDetection();
         }
     );
 });
 
-
-// AUTO-START DETECTION
-initResumeDetection();
+// MOVED: Only init resume detection if NOT auto-loading from URL
+// (it's now called inside the error callback above)
