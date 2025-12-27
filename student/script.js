@@ -719,6 +719,7 @@ function submitExam(isAuto, submissionType = 'manual') {
             examId: state.exam.examId,
             title: state.exam.metadata.title,
             subject: state.exam.metadata.subject,
+            class: state.exam.metadata.class, // Add class to exam metadata for submission 
             term: state.exam.metadata.term,
             academicYear: state.exam.metadata.academicYear
         },
